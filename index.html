@@ -27,14 +27,15 @@
 </div>
 
 <script>
-  // Initialize Supabase
+  // 1️⃣ Initialize Supabase
   const supabaseUrl = 'https://suzfqdinxinywbnmdxfx.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1emZxZGlueGlueXdibm1keGZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NDI2NDMsImV4cCI6MjA4NjMxODY0M30.96g5KWq26xztjUfTfBi5Z4xBo0r4LdTp3ZuPofqcTWU'; // replace with your anon key
-  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1emZxZGlueGlueXdibm1keGZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NDI2NDMsImV4cCI6MjA4NjMxODY0M30.96g5KWq26xztjUfTfBi5Z4xBo0r4LdTp3ZuPofqcTWU'; // replace with your anon key  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
+  // 2️⃣ DOM elements
   const signupBtn = document.getElementById('signupBtn');
   const errorMsg = document.getElementById('errorMsg');
 
+  // 3️⃣ Event listener
   signupBtn.addEventListener('click', async () => {
     const full_name = document.getElementById('full_name').value;
     const email = document.getElementById('email').value;
@@ -43,34 +44,33 @@
 
     errorMsg.textContent = '';
 
-    // 1️⃣ Sign Up in Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: email,
-      password: password
-    });
+    try {
+      // 3️⃣ Sign Up in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email,
+        password: password
+      });
 
-    if (authError) {
-      errorMsg.textContent = authError.message;
-      return;
+      if (authError) throw authError;
+
+      const userId = authData.user.id;
+
+      // 4️⃣ Insert into teachers table
+      const { error: dbError } = await supabase.from('teachers').insert([
+        { id: userId, full_name: full_name, subject: subject }
+      ]);
+
+      if (dbError) throw dbError;
+
+      // 5️⃣ Success message (no redirect)
+      alert('Sign Up Successful! You can now log in.');
+
+    } catch (err) {
+      errorMsg.textContent = err.message;
     }
-
-    const userId = authData.user.id;
-
-    // 2️⃣ Insert into teachers table
-    const { error: dbError } = await supabase.from('teachers').insert([
-      { id: userId, full_name: full_name, subject: subject }
-    ]);
-
-    if (dbError) {
-      errorMsg.textContent = dbError.message;
-      return;
-    }
-
-    // 3️⃣ Redirect or show success message
-    alert('Sign Up Successful! You can now log in.');
-    window.location.href = '/login.html'; // redirect to your login page
   });
 </script>
+
 
 </body>
 </html>
