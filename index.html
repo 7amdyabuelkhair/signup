@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teacher Login</title>
+  <title>Teacher Sign Up</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; }
-    .login-container { background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 300px; }
+    .signup-container { background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 300px; }
     input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #ccc; }
     button { width: 100%; padding: 10px; background-color: #4f46e5; color: white; border: none; border-radius: 5px; cursor: pointer; }
     button:hover { background-color: #4338ca; }
@@ -16,40 +16,59 @@
 </head>
 <body>
 
-<div class="login-container">
-  <h2>Teacher Login</h2>
+<div class="signup-container">
+  <h2>Teacher Sign Up</h2>
+  <input type="text" id="full_name" placeholder="Full Name">
   <input type="email" id="email" placeholder="Email">
   <input type="password" id="password" placeholder="Password">
-  <button id="loginBtn">Sign In</button>
+  <input type="text" id="subject" placeholder="Subject">
+  <button id="signupBtn">Sign Up</button>
   <p class="error" id="errorMsg"></p>
 </div>
 
 <script>
   // Initialize Supabase
   const supabaseUrl = 'https://suzfqdinxinywbnmdxfx.supabase.co';
-  const supabaseKey = 'YOUR_PUBLIC_ANON_KEY_HERE'; // replace with your anon key
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1emZxZGlueGlueXdibm1keGZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NDI2NDMsImV4cCI6MjA4NjMxODY0M30.96g5KWq26xztjUfTfBi5Z4xBo0r4LdTp3ZuPofqcTWU'; // replace with your anon key
   const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-  const loginBtn = document.getElementById('loginBtn');
+  const signupBtn = document.getElementById('signupBtn');
   const errorMsg = document.getElementById('errorMsg');
 
-  loginBtn.addEventListener('click', async () => {
+  signupBtn.addEventListener('click', async () => {
+    const full_name = document.getElementById('full_name').value;
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
+    const subject = document.getElementById('subject').value;
 
     errorMsg.textContent = '';
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    // 1️⃣ Sign Up in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email: email,
       password: password
     });
 
-    if (error) {
-      errorMsg.textContent = error.message;
-    } else {
-      // Redirect to dashboard or your page
-      window.location.href = '/dashboard.html';
+    if (authError) {
+      errorMsg.textContent = authError.message;
+      return;
     }
+
+    const userId = authData.user.id;
+
+    // 2️⃣ Insert into teachers table
+    const { error: dbError } = await supabase.from('teachers').insert([
+      { id: userId, full_name: full_name, subject: subject }
+    ]);
+
+    if (dbError) {
+      errorMsg.textContent = dbError.message;
+      return;
+    }
+
+    // 3️⃣ Redirect or show success message
+    alert('Sign Up Successful! You can now log in.');
+    window.location.href = '/login.html'; // redirect to your login page
   });
 </script>
 
