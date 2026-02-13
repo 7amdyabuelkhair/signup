@@ -247,7 +247,14 @@
 
         const requiresEmailConfirmation = !authData.session;
         if (requiresEmailConfirmation) {
-          signupApiError.textContent = 'Account created! Please check your email to verify your teacher account before signing in.';
+          localStorage.setItem('pending_teacher_data', JSON.stringify({
+            user_id: authData.user.id,
+            name: name,
+            email: email.toLowerCase(),
+            school: school,
+            subject: subject
+          }));
+          signupApiError.textContent = 'Account created! Please check your email to verify your teacher account, then sign in.';
           signupApiError.style.display = 'block';
           signupApiError.style.color = '#5fcf80';
           btn.disabled = false;
@@ -255,47 +262,38 @@
           return;
         }
 
-        // Insert teacher profile into "teachers" table (if it exists)
-        let teacherError = null;
-        try {
-          const { error: insertError } = await supabaseClient
-            .from('teachers')
-            .insert([
-              {
-                user_id: authData.user.id,
-                teacher_id: authData.user.id,
-                name: name,
-                email: email.toLowerCase(),
-                school: school,
-                subject: subject
-              }
-            ]);
-          if (insertError) {
-            teacherError = insertError;
-          }
-        } catch (err) {
-          teacherError = err;
+        // Insert teacher profile into "teachers" table
+        const { error: insertError } = await supabaseClient
+          .from('teachers')
+          .insert([
+            {
+              user_id: authData.user.id,
+              name: name,
+              email: email.toLowerCase(),
+              school: school,
+              subject: subject
+            }
+          ])
+          .select();
+
+        if (insertError) {
+          console.error('Teacher insert error:', insertError);
+          throw new Error(insertError.message || 'Could not create teacher profile. Make sure you ran the SQL in Supabase to create the "teachers" table.');
         }
 
-        if (teacherError) {
-          console.warn('Teacher profile insert issue (you may need to create the "teachers" table in Supabase):', teacherError.message || teacherError);
-        }
-
-        // Get session and store teacher user locally
         const { data: sessionData } = await supabaseClient.auth.getSession();
         if (sessionData.session) {
-          localStorage.setItem('stemify_teacher_token', sessionData.session.access_token);
+          localStorage.setItem('stemify_token', sessionData.session.access_token);
           localStorage.setItem('stemify_teacher_user', JSON.stringify({
             id: authData.user.id,
-            teacher_id: authData.user.id,
             name: name,
             email: email.toLowerCase(),
-            school: school,
-            subject: subject
+            school: school || null,
+            subject: subject || null
           }));
+          window.location.href = 'teacher-dashboard.html';
+          return;
         }
-
-        // Redirect to sign-in so the teacher uses the main login flow
         window.location.href = 'signin.html';
       } catch (err) {
         console.error('Teacher signup error:', err);
